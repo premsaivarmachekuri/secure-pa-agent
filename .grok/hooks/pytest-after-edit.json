@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|WriteFile",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .grok/hooks/pytest-after-edit.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

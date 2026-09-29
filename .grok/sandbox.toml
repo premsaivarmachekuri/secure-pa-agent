@@ -1,0 +1,7 @@
+# Kernel-enforced deny when a sandbox profile is active.
+# Activate with [sandbox] profile = "project" in ~/.grok/config.toml,
+# --sandbox, or GROK_SANDBOX=project.
+
+[profiles.project]
+extends = "workspace"
+deny = ["**/.env", "**/*.pem", "**/*.key"]

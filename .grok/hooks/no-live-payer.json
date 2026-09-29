@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .grok/hooks/no-live-payer.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

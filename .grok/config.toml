@@ -1,0 +1,16 @@
+# Project-scoped Grok Build config.
+# Only [mcp_servers], [plugins], and [permission] are valid here.
+# Models, memory, and subagent toggles belong in ~/.grok/config.toml.
+
+[permission]
+rules = [
+  { action = "deny",  tool = "bash", pattern = "curl *availity*" },
+  { action = "deny",  tool = "bash", pattern = "curl *uhc*" },
+  { action = "deny",  tool = "bash", pattern = "curl *unitedhealthcare*" },
+  { action = "deny",  tool = "bash", pattern = "curl *evicore*" },
+  { action = "allow", tool = "bash", pattern = "pytest *" },
+  { action = "allow", tool = "bash", pattern = "git *" },
+  { action = "allow", tool = "bash", pattern = "python *" },
+  { action = "allow", tool = "bash", pattern = "python3 *" },
+  { action = "allow", tool = "read" },
+]
