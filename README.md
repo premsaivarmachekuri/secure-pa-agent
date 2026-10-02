@@ -1,12 +1,113 @@
-# secure-pa-agent
+# Secure Prior Authorization Agent
 
-Phase 1 gated prior-authorization assistant (recommend only). Synthetic data.
+Field Delivery Engineer (FDE) portfolio artifact: a **gated, recommend-only** control plane for AHN-class imaging prior authorization (PA).
 
-| Doc | Role |
+Reviewers (HR, founders, engineering leaders): this is not a chatbot demo and not a slide. The work is named controls, reviewable diffs, and pytest/hook evidence. Synthetic data only. The agent is **not** the Payer and does **not** book the MRI.
+
+| Read next | Why |
 |---|---|
-| `context.md` | Product context (canonical) |
-| `docs/BRD.md` | Business requirements |
-| `docs/GROK_HARNESS.md` | Grok Build / `.grok/` harness |
+| This as-is diagram | The operating problem in today’s systems |
+| `docs/BRD.md` | Business case, entities, to-be, requirements |
+| `context.md` | Build contract (canonical names, Phase 1 scope) |
+| `docs/GROK_HARNESS.md` | How Grok Build implements the kernel |
 | `AGENTS.md` | Always-on builder rules |
 
 Copy `.env.example` locally. Never commit `.env`.
+
+---
+
+## The problem
+
+AHN-class IDNs run on the order of **200,000 authorizations per year** (imaging first). A typical physician generates ~40 PA requests per week. Today a **PA coordinator** checks eligibility, looks up whether PA is required, copy-pastes a packet from the EHR, submits in **Highmark Availity / UHC Provider Portal**, and chases status. The **Scheduler** will not book the MRI without a Payer auth number.
+
+Teams are dropping ungoverned LLM assistants into that path. That creates a new PHI leak, prompt-based role escalation, and submit-without-clinician risk. Existing HIPAA/RBAC was built for “user queries a database,” not prompt → tools → memory → model → logs.
+
+---
+
+## As-is — existing systems (no Secure Agent)
+
+Same entities as the to-be. No choke point. Manual portals, unbounded copy-paste, optional shadow ChatGPT.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Patient
+  actor Physician
+  participant EHR as EHR order and notes
+  actor Coord as PA coordinator dual-role queue
+  participant Elig as Eligibility and PA-required portals
+  participant Packet as Copy-paste packet no allowlist
+  participant Portal as Availity or UHC or eviCore or fax
+  actor UM as UM nurse at Payer
+  actor Sched as Scheduler
+
+  Patient->>Physician: seeks care back pain
+  Physician->>EHR: order lumbar MRI CPT 72148 M54.5
+  EHR->>Coord: work item member chart
+  Note over Sched: MRI slot is NOT booked
+
+  Coord->>Elig: check coverage and whether PA is required
+  Elig-->>Coord: plan status often with extra PHI
+  Coord->>Packet: paste from EHR no field allowlist
+  Note over Packet: SSN full chart wrong-patient note risk
+  Coord->>Portal: submit packet
+  Note over Coord,Portal: chase status for days
+
+  Portal->>UM: utilization review
+  UM-->>Portal: approve or pend or deny
+  Portal-->>Sched: auth number or delay
+  Sched->>Patient: book MRI or keep waiting
+```
+
+Coordinator path as a vertical chain (GitHub-renderable):
+
+```mermaid
+flowchart TD
+  A[Patient seeks care]
+  B[Physician places EHR order]
+  C[EHR work item to site queue]
+  D[PA coordinator dual-role]
+  E[Manual eligibility portal]
+  F[Manual PA-required lookup]
+  G[Copy-paste packet from EHR]
+  H[Submit Availity or UHC or fax]
+  I[Chase status days]
+  J[UM nurse approve pend deny]
+  K[Scheduler books or cancels]
+  L[Patient waits]
+
+  A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K --> L
+```
+
+### What breaks in this as-is
+
+| Failure | Why it matters for an FDE control plane |
+|---|---|
+| Full member file (SSN) in the packet | Minimum necessary is not enforced |
+| Wrong-patient note | No Session bound to one Patient / one case |
+| Shadow paste into a public LLM | PHI leaves the org with no L4 gate |
+| Coordinator submits without clinician | No maker-checker; `pa_submit` is not role-gated |
+| No `blocked` vs `ok` audit | Ungoverned prompt → tools → logs |
+
+Those five are the to-be close-list. Full narrative: `docs/BRD.md` §3B.
+
+---
+
+## Positioning (this repo as FDE evidence)
+
+| Claim you can verify in git | Where |
+|---|---|
+| Recommend only — never “I approved the MRI” | `AGENTS.md`, `context.md` |
+| Injection is authorization failure (`blocked`, model not called) | Phase 1 UC-2 / T2 |
+| Maker-checker: `caseworker` never receives `pa_submit` | BR-S4, UC-3 |
+| Synthetic fixtures only (`M-48219`, CPT `72148`) | `data/` (kernel), `ALLOW_PHI=false` |
+| Builder fail-closed: no `.env` in git, no live Payer curls | `.grok/hooks/`, `.gitignore` |
+| Headless turn: trigger → gated work → idle; no product UI | `POST /chat` (kernel), `GET /metrics` |
+
+To-be choke point is the **Secure Agent** (L4 → L3 → L2 → L1). Groq/stub speaks only after Python gates. Payer still pays. Scheduler still books. Phase 1 kernel is **in progress** (`context.md` §15). Do not treat this README as a HIPAA certification.
+
+---
+
+## Phase 1 stack (when the kernel lands)
+
+Python 3.12, FastAPI, SQLite, port 8000, `uvicorn --workers 1`. Tests T1 / T2 / T8. Identity via headers `X-User-Id`, `X-Role`, `X-Session-Id`.
