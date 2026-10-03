@@ -104,10 +104,16 @@ Those five are the to-be close-list. Full narrative: `docs/BRD.md` §3B.
 | Builder fail-closed: no `.env` in git, no live Payer curls | `.grok/hooks/`, `.gitignore` |
 | Headless turn: trigger → gated work → idle; no product UI | `POST /chat` (kernel), `GET /metrics` |
 
-To-be choke point is the **Secure Agent** (L4 → L3 → L2 → L1). Groq/stub speaks only after Python gates. Payer still pays. Scheduler still books. Phase 1 kernel is **in progress** (`context.md` §15). Do not treat this README as a HIPAA certification.
+To-be choke point is the **Secure Agent** (L4 → L3 → L2 → L1). Groq/stub speaks only after Python gates. Payer still pays. Scheduler still books. Kernel code is in `agent/`; `context.md` §15 stays in progress until you sign off. Do not treat this README as a HIPAA certification.
 
 ---
 
-## Phase 1 stack (when the kernel lands)
+## Phase 1 stack
 
 Python 3.12, FastAPI, SQLite, port 8000, `uvicorn --workers 1`. Tests T1 / T2 / T8. Identity via headers `X-User-Id`, `X-Role`, `X-Session-Id`.
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest tests/test_phase1.py -q
+uvicorn agent.app:app --host 127.0.0.1 --port 8000 --workers 1
+```

@@ -1,0 +1,9 @@
+{
+  "72148": {
+    "cpt": "72148",
+    "description": "MRI lumbar spine without contrast",
+    "diagnosis": "M54.5",
+    "pa_required": true,
+    "criteria": "Conservative therapy documentation; no SSN in packet"
+  }
+}

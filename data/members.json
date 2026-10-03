@@ -1,0 +1,16 @@
+{
+  "M-48219": {
+    "member_id": "M-48219",
+    "active": true,
+    "plan": "Highmark-class PPO",
+    "pa_required": true,
+    "ssn": "078-05-1120"
+  },
+  "M-10002": {
+    "member_id": "M-10002",
+    "active": false,
+    "plan": null,
+    "pa_required": false,
+    "ssn": "219-09-9999"
+  }
+}
